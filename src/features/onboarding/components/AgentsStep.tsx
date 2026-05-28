@@ -30,7 +30,7 @@ export const AgentsStep = ({ agentCount, connected }: AgentsStepProps) => {
           <p className="text-sm font-medium text-white">No agents found</p>
           <p className="max-w-xs text-center text-xs text-white/55">
             Your gateway is connected, but no agents are configured yet.
-            You can create agents from the Claw3D fleet sidebar after
+            You can create agents from the Hermes-town fleet sidebar after
             completing this wizard.
           </p>
         </div>
@@ -41,7 +41,7 @@ export const AgentsStep = ({ agentCount, connected }: AgentsStepProps) => {
             <li>1. Click the + button in the fleet sidebar</li>
             <li>2. Choose a name and model for your agent</li>
             <li>3. Configure skills and personality</li>
-            <li>4. Watch your agent appear at their desk!</li>
+            <li>4. Watch your agent appear as a town hero!</li>
           </ol>
         </div>
       </div>
@@ -57,7 +57,7 @@ export const AgentsStep = ({ agentCount, connected }: AgentsStepProps) => {
             {agentCount} agent{agentCount !== 1 ? "s" : ""} discovered
           </p>
           <p className="text-[11px] text-white/55">
-            Your AI team is ready and waiting in the office.
+            Your AI team is ready and waiting in the guild town.
           </p>
         </div>
       </div>

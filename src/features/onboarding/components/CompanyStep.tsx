@@ -21,10 +21,10 @@ export const CompanyStep = ({
             <Building2 className="h-5 w-5 text-amber-300" />
           </div>
           <div className="space-y-2">
-            <p className="text-sm font-semibold text-white">Bootstrap your company with AI</p>
+            <p className="text-sm font-semibold text-white">Bootstrap your guild with AI</p>
             <p className="text-xs leading-5 text-white/60">
-              Describe what your company does and Claw3D can turn that into a full org structure
-              with specialized agents, working files, and role instructions.
+              Describe what your company does and Hermes-town can turn that into a full org
+              structure with specialized agents, working files, and role instructions.
             </p>
           </div>
         </div>
@@ -68,7 +68,7 @@ export const CompanyStep = ({
               onClick={onOpenCompanyBuilder}
             >
               <Sparkles className="h-3.5 w-3.5" />
-              Open Company Builder
+              Open Guild Builder
             </button>
           </div>
         ) : (

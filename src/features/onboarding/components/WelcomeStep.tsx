@@ -1,13 +1,13 @@
 /**
- * WelcomeStep — First onboarding screen introducing Claw3D.
+ * WelcomeStep — First onboarding screen introducing Hermes-town.
  */
-import { Building2, Eye, MessageSquare, Users } from "lucide-react";
+import { Building2, Eye, MessageSquare, Swords, Users } from "lucide-react";
 
 const features = [
   {
     icon: Eye,
-    title: "Watch agents work",
-    description: "See your AI agents in real time in a shared 3D office",
+    title: "Watch heroes roam",
+    description: "See agents as animated heroes in a living town",
   },
   {
     icon: Users,
@@ -21,8 +21,13 @@ const features = [
   },
   {
     icon: Building2,
-    title: "Build your office",
-    description: "Customize rooms, desks, and the whole office layout",
+    title: "Grow the town",
+    description: "Upgrade medieval buildings as goals are completed",
+  },
+  {
+    icon: Swords,
+    title: "Preview missions",
+    description: "Track active tasks in a quest panel over the town",
   },
 ] as const;
 
@@ -30,10 +35,10 @@ export const WelcomeStep = () => (
   <div className="space-y-5">
     <div className="space-y-2">
       <p className="text-sm leading-relaxed text-white/80">
-        Claw3D turns your AI automation into a{" "}
-        <span className="font-medium text-white">visual workplace</span> — an
-        office where your AI agents collaborate, code, test, and execute
-        tasks in a shared 3D environment.
+        Hermes-town turns your AI automation into a{" "}
+        <span className="font-medium text-white">living guild town</span> where
+        your agents idle, walk, craft, research, and take on missions as 2D
+        heroes.
       </p>
       <p className="text-sm text-white/60">
         This wizard will help you connect to your runtime gateway and get

@@ -1,5 +1,5 @@
 /**
- * OnboardingWizard — Step-based onboarding flow for new Claw3D users.
+ * OnboardingWizard — Step-based onboarding flow for new Hermes-town users.
  *
  * Renders a modal overlay with step navigation, progress indicator,
  * and content slots for each onboarding phase.  Designed to be mounted
@@ -215,7 +215,7 @@ export const OnboardingWizard = ({
                 className="inline-flex items-center gap-1.5 rounded-md bg-amber-500 px-4 py-2 text-xs font-semibold text-[#1a1206] transition-colors hover:bg-amber-400"
                 onClick={onComplete}
               >
-                Enter Office
+                Enter Town
               </button>
             ) : (
               <button

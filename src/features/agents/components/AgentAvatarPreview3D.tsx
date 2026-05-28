@@ -1,299 +1,10 @@
 "use client";
 
-import { Environment, OrbitControls } from "@react-three/drei";
-import { Canvas, useFrame } from "@react-three/fiber";
-import { useEffect, useMemo, useRef, useState } from "react";
-import * as THREE from "three";
+import { useMemo } from "react";
 import {
   type AgentAvatarProfile,
   createDefaultAgentAvatarProfile,
 } from "@/lib/avatars/profile";
-import { RunningAvatarLoader } from "@/features/agents/components/RunningAvatarLoader";
-
-const PreviewFigure = ({
-  profile,
-  onFirstFrame,
-}: {
-  profile: AgentAvatarProfile;
-  onFirstFrame: () => void;
-}) => {
-  const groupRef = useRef<THREE.Group>(null);
-  const reportedReadyRef = useRef(false);
-
-  useEffect(() => {
-    reportedReadyRef.current = false;
-  }, [profile]);
-
-  useFrame((state) => {
-    if (!reportedReadyRef.current) {
-      reportedReadyRef.current = true;
-      onFirstFrame();
-    }
-    if (!groupRef.current) return;
-    groupRef.current.rotation.y = Math.sin(state.clock.elapsedTime * 0.45) * 0.35 + 0.25;
-  });
-
-  const skin = profile.body.skinTone;
-  const topColor = profile.clothing.topColor;
-  const bottomColor = profile.clothing.bottomColor;
-  const shoeColor = profile.clothing.shoesColor;
-  const hairColor = profile.hair.color;
-  const accessoryColor = topColor;
-  const sleeveColor = profile.clothing.topStyle === "jacket" ? "#dbe4ff" : topColor;
-  const cuffColor = profile.clothing.topStyle === "hoodie" ? "#d1d5db" : sleeveColor;
-
-  return (
-    <group ref={groupRef} position={[0, -0.72, 0]} scale={[1.45, 1.45, 1.45]}>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.01, 0]}>
-        <circleGeometry args={[0.22, 24]} />
-        <meshBasicMaterial color="#000000" transparent opacity={0.16} />
-      </mesh>
-
-      {profile.accessories.backpack ? (
-        <group position={[0, 0.31, -0.08]}>
-          <mesh>
-            <boxGeometry args={[0.16, 0.2, 0.06]} />
-            <meshLambertMaterial color={accessoryColor} />
-          </mesh>
-        </group>
-      ) : null}
-
-      <group position={[-0.05, 0.12, 0]}>
-        {profile.clothing.bottomStyle === "shorts" ? (
-          <>
-            <mesh position={[0, 0.03, 0]}>
-              <boxGeometry args={[0.07, 0.08, 0.08]} />
-              <meshLambertMaterial color={bottomColor} />
-            </mesh>
-            <mesh position={[0, -0.045, 0]}>
-              <boxGeometry args={[0.05, 0.06, 0.05]} />
-              <meshLambertMaterial color={skin} />
-            </mesh>
-          </>
-        ) : (
-          <mesh>
-            <boxGeometry args={[0.07, 0.14, 0.08]} />
-            <meshLambertMaterial color={bottomColor} />
-          </mesh>
-        )}
-        <mesh position={[0, -0.09, 0]}>
-          <boxGeometry args={[0.07, 0.05, 0.12]} />
-          <meshLambertMaterial color={shoeColor} />
-        </mesh>
-      </group>
-      <group position={[0.05, 0.12, 0]}>
-        {profile.clothing.bottomStyle === "shorts" ? (
-          <>
-            <mesh position={[0, 0.03, 0]}>
-              <boxGeometry args={[0.07, 0.08, 0.08]} />
-              <meshLambertMaterial color={bottomColor} />
-            </mesh>
-            <mesh position={[0, -0.045, 0]}>
-              <boxGeometry args={[0.05, 0.06, 0.05]} />
-              <meshLambertMaterial color={skin} />
-            </mesh>
-          </>
-        ) : (
-          <mesh>
-            <boxGeometry args={[0.07, 0.14, 0.08]} />
-            <meshLambertMaterial color={bottomColor} />
-          </mesh>
-        )}
-        <mesh position={[0, -0.09, 0]}>
-          <boxGeometry args={[0.07, 0.05, 0.12]} />
-          <meshLambertMaterial color={shoeColor} />
-        </mesh>
-      </group>
-
-      <mesh position={[0, 0.3, 0]}>
-        <boxGeometry args={[0.2, 0.22, 0.1]} />
-        <meshLambertMaterial color={topColor} />
-      </mesh>
-      {profile.clothing.topStyle === "hoodie" ? (
-        <>
-          <mesh position={[0, 0.37, -0.045]}>
-            <boxGeometry args={[0.18, 0.1, 0.03]} />
-            <meshLambertMaterial color={topColor} />
-          </mesh>
-          <mesh position={[0, 0.23, 0.056]}>
-            <boxGeometry args={[0.11, 0.03, 0.012]} />
-            <meshLambertMaterial color={cuffColor} />
-          </mesh>
-        </>
-      ) : null}
-      {profile.clothing.topStyle === "jacket" ? (
-        <>
-          <mesh position={[0, 0.3, 0.056]}>
-            <boxGeometry args={[0.202, 0.23, 0.012]} />
-            <meshLambertMaterial color="#1f2937" />
-          </mesh>
-          <mesh position={[0, 0.3, 0.063]}>
-            <boxGeometry args={[0.038, 0.21, 0.01]} />
-            <meshLambertMaterial color="#f8fafc" />
-          </mesh>
-        </>
-      ) : null}
-
-      <group position={[-0.13, 0.3, 0]}>
-        <mesh position={[0, -0.08, 0]}>
-          <boxGeometry args={[0.06, 0.16, 0.06]} />
-          <meshLambertMaterial color={sleeveColor} />
-        </mesh>
-        {profile.clothing.topStyle === "hoodie" ? (
-          <mesh position={[0, -0.145, 0]}>
-            <boxGeometry args={[0.064, 0.03, 0.064]} />
-            <meshLambertMaterial color={cuffColor} />
-          </mesh>
-        ) : null}
-        <mesh position={[0, -0.17, 0]}>
-          <boxGeometry args={[0.05, 0.05, 0.05]} />
-          <meshLambertMaterial color={skin} />
-        </mesh>
-      </group>
-      <group position={[0.13, 0.3, 0]}>
-        <mesh position={[0, -0.08, 0]}>
-          <boxGeometry args={[0.06, 0.16, 0.06]} />
-          <meshLambertMaterial color={sleeveColor} />
-        </mesh>
-        {profile.clothing.topStyle === "hoodie" ? (
-          <mesh position={[0, -0.145, 0]}>
-            <boxGeometry args={[0.064, 0.03, 0.064]} />
-            <meshLambertMaterial color={cuffColor} />
-          </mesh>
-        ) : null}
-        <mesh position={[0, -0.17, 0]}>
-          <boxGeometry args={[0.05, 0.05, 0.05]} />
-          <meshLambertMaterial color={skin} />
-        </mesh>
-      </group>
-
-      <mesh position={[0, 0.42, 0]}>
-        <boxGeometry args={[0.07, 0.05, 0.07]} />
-        <meshLambertMaterial color={skin} />
-      </mesh>
-      <mesh position={[0, 0.5, 0]}>
-        <boxGeometry args={[0.17, 0.17, 0.15]} />
-        <meshLambertMaterial color={skin} />
-      </mesh>
-
-      {profile.hair.style === "short" ? (
-        <mesh position={[0, 0.59, 0]}>
-          <boxGeometry args={[0.18, 0.05, 0.15]} />
-          <meshLambertMaterial color={hairColor} />
-        </mesh>
-      ) : null}
-      {profile.hair.style === "parted" ? (
-        <>
-          <mesh position={[0, 0.585, 0]}>
-            <boxGeometry args={[0.18, 0.045, 0.15]} />
-            <meshLambertMaterial color={hairColor} />
-          </mesh>
-          <mesh position={[-0.03, 0.62, 0.01]} rotation={[0.1, 0, -0.2]}>
-            <boxGeometry args={[0.12, 0.03, 0.08]} />
-            <meshLambertMaterial color={hairColor} />
-          </mesh>
-        </>
-      ) : null}
-      {profile.hair.style === "spiky" ? (
-        <>
-          <mesh position={[0, 0.58, 0]}>
-            <boxGeometry args={[0.17, 0.035, 0.14]} />
-            <meshLambertMaterial color={hairColor} />
-          </mesh>
-          <mesh position={[-0.05, 0.62, 0]} rotation={[0, 0, -0.2]}>
-            <boxGeometry args={[0.04, 0.06, 0.04]} />
-            <meshLambertMaterial color={hairColor} />
-          </mesh>
-          <mesh position={[0, 0.635, 0]}>
-            <boxGeometry args={[0.04, 0.08, 0.04]} />
-            <meshLambertMaterial color={hairColor} />
-          </mesh>
-          <mesh position={[0.05, 0.62, 0]} rotation={[0, 0, 0.2]}>
-            <boxGeometry args={[0.04, 0.06, 0.04]} />
-            <meshLambertMaterial color={hairColor} />
-          </mesh>
-        </>
-      ) : null}
-      {profile.hair.style === "bun" ? (
-        <>
-          <mesh position={[0, 0.58, 0]}>
-            <boxGeometry args={[0.18, 0.04, 0.15]} />
-            <meshLambertMaterial color={hairColor} />
-          </mesh>
-          <mesh position={[0, 0.63, -0.03]}>
-            <sphereGeometry args={[0.045, 16, 16]} />
-            <meshLambertMaterial color={hairColor} />
-          </mesh>
-        </>
-      ) : null}
-
-      {profile.accessories.hatStyle === "cap" ? (
-        <>
-          <mesh position={[0, 0.63, 0]}>
-            <boxGeometry args={[0.18, 0.03, 0.16]} />
-            <meshLambertMaterial color={accessoryColor} />
-          </mesh>
-          <mesh position={[0, 0.615, 0.07]}>
-            <boxGeometry args={[0.09, 0.012, 0.05]} />
-            <meshLambertMaterial color={accessoryColor} />
-          </mesh>
-        </>
-      ) : null}
-      {profile.accessories.hatStyle === "beanie" ? (
-        <mesh position={[0, 0.63, 0]}>
-          <boxGeometry args={[0.19, 0.06, 0.17]} />
-          <meshLambertMaterial color={accessoryColor} />
-        </mesh>
-      ) : null}
-
-      {profile.accessories.headset ? (
-        <>
-          <mesh position={[0, 0.6, 0]} rotation={[0, 0, Math.PI / 2]}>
-            <torusGeometry args={[0.095, 0.008, 8, 24, Math.PI]} />
-            <meshLambertMaterial color="#94a3b8" />
-          </mesh>
-          <mesh position={[-0.105, 0.51, 0]}>
-            <boxGeometry args={[0.018, 0.05, 0.028]} />
-            <meshLambertMaterial color="#475569" />
-          </mesh>
-          <mesh position={[0.105, 0.51, 0]}>
-            <boxGeometry args={[0.018, 0.05, 0.028]} />
-            <meshLambertMaterial color="#475569" />
-          </mesh>
-        </>
-      ) : null}
-
-      <mesh position={[-0.04, 0.505, 0.078]}>
-        <boxGeometry args={[0.03, 0.03, 0.01]} />
-        <meshBasicMaterial color="#111827" />
-      </mesh>
-      <mesh position={[0.04, 0.505, 0.078]}>
-        <boxGeometry args={[0.03, 0.03, 0.01]} />
-        <meshBasicMaterial color="#111827" />
-      </mesh>
-      {profile.accessories.glasses ? (
-        <>
-          <mesh position={[-0.04, 0.505, 0.084]}>
-            <boxGeometry args={[0.05, 0.05, 0.01]} />
-            <meshBasicMaterial color="#111827" wireframe />
-          </mesh>
-          <mesh position={[0.04, 0.505, 0.084]}>
-            <boxGeometry args={[0.05, 0.05, 0.01]} />
-            <meshBasicMaterial color="#111827" wireframe />
-          </mesh>
-          <mesh position={[0, 0.505, 0.084]}>
-            <boxGeometry args={[0.02, 0.008, 0.01]} />
-            <meshBasicMaterial color="#111827" />
-          </mesh>
-        </>
-      ) : null}
-      <mesh position={[0, 0.46, 0.079]}>
-        <boxGeometry args={[0.05, 0.014, 0.01]} />
-        <meshBasicMaterial color="#9c4a4a" />
-      </mesh>
-    </group>
-  );
-};
 
 export const AgentAvatarPreview3D = ({
   profile,
@@ -304,33 +15,126 @@ export const AgentAvatarPreview3D = ({
 }) => {
   const resolvedProfile = useMemo(
     () => profile ?? createDefaultAgentAvatarProfile("preview"),
-    [profile]
+    [profile],
   );
-  const profileKey = useMemo(() => JSON.stringify(resolvedProfile), [resolvedProfile]);
-  const [readyProfileKey, setReadyProfileKey] = useState<string | null>(null);
-  const isReady = readyProfileKey === profileKey;
+
+  const skin = resolvedProfile.body.skinTone;
+  const topColor = resolvedProfile.clothing.topColor;
+  const bottomColor = resolvedProfile.clothing.bottomColor;
+  const shoeColor = resolvedProfile.clothing.shoesColor;
+  const hairColor = resolvedProfile.hair.color;
+  const accessoryColor = topColor;
 
   return (
-    <div className={`relative ${className}`}>
-      {!isReady ? (
-        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-[#070b16] text-white/70">
-          <RunningAvatarLoader size={26} trackWidth={72} label="Loading avatar..." />
-        </div>
-      ) : null}
-      <Canvas key={profileKey} camera={{ position: [0, 0.7, 2.5], fov: 34 }}>
-        <color attach="background" args={["#070b16"]} />
-        <ambientLight intensity={1.4} />
-        <directionalLight position={[3, 4, 5]} intensity={2.4} />
-        <directionalLight position={[-4, 2, 3]} intensity={0.9} color="#89a6ff" />
-        <PreviewFigure
-          profile={resolvedProfile}
-          onFirstFrame={() => {
-            setReadyProfileKey(profileKey);
-          }}
+    <div
+      className={`relative flex items-center justify-center overflow-hidden bg-[#070b16] ${className}`}
+      aria-label="2D avatar preview"
+    >
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_30%,rgba(120,160,255,0.18),transparent_42%),linear-gradient(180deg,rgba(15,23,42,0.25),rgba(2,6,23,0.92))]" />
+      <div className="relative h-[78%] min-h-[220px] w-[220px]">
+        <div className="absolute bottom-[7%] left-1/2 h-4 w-32 -translate-x-1/2 rounded-full bg-black/30 blur-[1px]" />
+
+        {resolvedProfile.accessories.backpack ? (
+          <div
+            className="absolute bottom-[34%] left-1/2 h-24 w-20 -translate-x-1/2 rounded-md border border-black/20"
+            style={{ backgroundColor: accessoryColor }}
+          />
+        ) : null}
+
+        <div
+          className="absolute bottom-[18%] left-[40%] h-20 w-8 rounded-sm border border-black/20"
+          style={{ backgroundColor: bottomColor }}
         />
-        <Environment preset="city" />
-        <OrbitControls enablePan={false} enableZoom={false} maxPolarAngle={1.8} minPolarAngle={1.1} />
-      </Canvas>
+        <div
+          className="absolute bottom-[18%] right-[40%] h-20 w-8 rounded-sm border border-black/20"
+          style={{ backgroundColor: bottomColor }}
+        />
+        <div
+          className="absolute bottom-[13%] left-[37%] h-5 w-12 rounded-sm border border-black/20"
+          style={{ backgroundColor: shoeColor }}
+        />
+        <div
+          className="absolute bottom-[13%] right-[37%] h-5 w-12 rounded-sm border border-black/20"
+          style={{ backgroundColor: shoeColor }}
+        />
+
+        <div
+          className="absolute bottom-[43%] left-1/2 h-28 w-28 -translate-x-1/2 rounded-md border border-black/20"
+          style={{ backgroundColor: topColor }}
+        />
+        {resolvedProfile.clothing.topStyle === "jacket" ? (
+          <div className="absolute bottom-[44%] left-1/2 h-24 w-6 -translate-x-1/2 rounded bg-white/90" />
+        ) : null}
+        {resolvedProfile.clothing.topStyle === "hoodie" ? (
+          <div
+            className="absolute bottom-[61%] left-1/2 h-9 w-24 -translate-x-1/2 rounded-t-full border border-black/15"
+            style={{ backgroundColor: topColor }}
+          />
+        ) : null}
+
+        <div
+          className="absolute bottom-[43%] left-[21%] h-24 w-8 origin-top rotate-12 rounded-sm border border-black/20"
+          style={{ backgroundColor: topColor }}
+        />
+        <div
+          className="absolute bottom-[43%] right-[21%] h-24 w-8 origin-top -rotate-12 rounded-sm border border-black/20"
+          style={{ backgroundColor: topColor }}
+        />
+        <div
+          className="absolute bottom-[36%] left-[18%] h-8 w-8 rounded-full border border-black/20"
+          style={{ backgroundColor: skin }}
+        />
+        <div
+          className="absolute bottom-[36%] right-[18%] h-8 w-8 rounded-full border border-black/20"
+          style={{ backgroundColor: skin }}
+        />
+
+        <div
+          className="absolute bottom-[67%] left-1/2 h-9 w-9 -translate-x-1/2 rounded-sm border border-black/20"
+          style={{ backgroundColor: skin }}
+        />
+        <div
+          className="absolute bottom-[73%] left-1/2 h-24 w-24 -translate-x-1/2 rounded-[34%] border border-black/20"
+          style={{ backgroundColor: skin }}
+        />
+
+        <div
+          className={`absolute left-1/2 -translate-x-1/2 border border-black/20 ${
+            resolvedProfile.hair.style === "spiky"
+              ? "bottom-[94%] h-11 w-28 rounded-t-[45%]"
+              : resolvedProfile.hair.style === "bun"
+                ? "bottom-[94%] h-9 w-28 rounded-t-full"
+                : "bottom-[92%] h-10 w-28 rounded-t-[38%]"
+          }`}
+          style={{ backgroundColor: hairColor }}
+        />
+        {resolvedProfile.hair.style === "bun" ? (
+          <div
+            className="absolute bottom-[99%] left-1/2 h-10 w-10 -translate-x-1/2 rounded-full border border-black/20"
+            style={{ backgroundColor: hairColor }}
+          />
+        ) : null}
+        {resolvedProfile.accessories.hatStyle !== "none" ? (
+          <div
+            className="absolute bottom-[98%] left-1/2 h-8 w-32 -translate-x-1/2 rounded-t-full border border-black/20"
+            style={{ backgroundColor: accessoryColor }}
+          />
+        ) : null}
+        {resolvedProfile.accessories.headset ? (
+          <div className="absolute bottom-[81%] left-1/2 h-20 w-32 -translate-x-1/2 rounded-t-full border-4 border-slate-400 border-b-0" />
+        ) : null}
+
+        <div className="absolute bottom-[82%] left-[42%] h-3 w-3 rounded-sm bg-slate-950" />
+        <div className="absolute bottom-[82%] right-[42%] h-3 w-3 rounded-sm bg-slate-950" />
+        {resolvedProfile.accessories.glasses ? (
+          <>
+            <div className="absolute bottom-[80.5%] left-[36%] h-7 w-7 rounded border-2 border-slate-950" />
+            <div className="absolute bottom-[80.5%] right-[36%] h-7 w-7 rounded border-2 border-slate-950" />
+            <div className="absolute bottom-[82.5%] left-1/2 h-1 w-5 -translate-x-1/2 bg-slate-950" />
+          </>
+        ) : null}
+        <div className="absolute bottom-[77%] left-1/2 h-1.5 w-9 -translate-x-1/2 rounded-full bg-rose-700/80" />
+      </div>
     </div>
   );
 };
