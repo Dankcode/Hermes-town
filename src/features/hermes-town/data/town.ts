@@ -55,6 +55,7 @@ export type HermesBuilding = {
 
 export type HermesMission = {
   active: boolean;
+  phase: "idle" | "gathering" | "embarking" | "combat" | "complete";
   title: string;
   objective: string;
   progress: number;
@@ -62,7 +63,29 @@ export type HermesMission = {
   simulatedApiCall: string;
 };
 
+export type HermesEncounterChoice = {
+  id: string;
+  label: string;
+  effect: string;
+};
+
+export type HermesEncounter = {
+  active: boolean;
+  id: string;
+  title: string;
+  prompt: string;
+  buildingId: HermesBuildingId;
+  choices: HermesEncounterChoice[];
+  log: string[];
+};
+
 export type HermesTimeMode = "system" | "day" | "dusk" | "night";
+
+export type HermesTownTheme =
+  | "royal-guild"
+  | "arcane-night"
+  | "forest-shrine"
+  | "sunlit-market";
 
 export type HermesDebugState = {
   open: boolean;
@@ -77,12 +100,23 @@ export type HermesDebugState = {
 export type HermesTownSettings = {
   prosperity: number;
   npcDensity: number;
+  connectionProfile: "tailscale" | "home" | "local";
+  tailscaleHost: string;
+  homeHost: string;
+  hermesApiPort: number;
+  gatewayPort: number;
+  maxAgents: number;
+  autoEncounters: boolean;
+  streetViewportVh: number;
+  streetViewportPx: number;
+  visualTheme: HermesTownTheme;
 };
 
 export type HermesTownState = {
   heroes: HermesHero[];
   buildings: HermesBuilding[];
   mission: HermesMission;
+  encounter: HermesEncounter;
   settings: HermesTownSettings;
   debug: HermesDebugState;
   gatewayStatus: string;
@@ -91,9 +125,9 @@ export type HermesTownState = {
 };
 
 export const HERMES_WORLD = {
-  width: 3600,
-  height: 520,
-  groundY: 390,
+  width: 4600,
+  height: 540,
+  groundY: 420,
 };
 
 const heroClasses: HermesHeroClass[] = ["knight", "mage", "archer", "baker", "rogue", "tamer"];
@@ -107,13 +141,51 @@ const classWeapon: Record<HermesHeroClass, HermesHero["weapon"]> = {
   tamer: "whip",
 };
 
+const classFromAgentRole = (agent: OfficeAgent, index: number): HermesHeroClass => {
+  const text = `${agent.name ?? ""} ${agent.subtitle ?? ""}`.toLowerCase();
+  if (text.includes("review") || text.includes("qa") || text.includes("test")) return "knight";
+  if (text.includes("research") || text.includes("memory") || text.includes("context")) return "mage";
+  if (text.includes("search") || text.includes("triage") || text.includes("scan")) return "archer";
+  if (text.includes("doc") || text.includes("support") || text.includes("polish")) return "baker";
+  if (text.includes("security") || text.includes("fix") || text.includes("patch")) return "rogue";
+  if (text.includes("orchestr") || text.includes("lead") || text.includes("main")) return "tamer";
+  return heroClasses[index % heroClasses.length];
+};
+
+const fantasyRoleFromAgent = (agent: OfficeAgent, className: HermesHeroClass) => {
+  const rawRole = agent.subtitle?.trim();
+  if (rawRole) {
+    const lower = rawRole.toLowerCase();
+    if (lower.includes("orchestr")) return "Guild Marshal";
+    if (lower.includes("research") || lower.includes("context")) return "Lore Seer";
+    if (lower.includes("review") || lower.includes("qa") || lower.includes("test")) return "Trial Knight";
+    if (lower.includes("code") || lower.includes("patch") || lower.includes("build")) return "Forgeblade";
+    if (lower.includes("doc") || lower.includes("support")) return "Hearth Scribe";
+  }
+  switch (className) {
+    case "mage":
+      return "Lore Seer";
+    case "archer":
+      return "Pathfinder";
+    case "baker":
+      return "Hearth Scribe";
+    case "rogue":
+      return "Shadow Fixer";
+    case "tamer":
+      return "Guild Marshal";
+    case "knight":
+    default:
+      return "Quest Knight";
+  }
+};
+
 export const createDefaultBuildings = (): HermesBuilding[] => [
   {
     id: "guild-hall",
     name: "Guild Hall",
     theme: "Mission board and agent roster",
     skill: "Task intake",
-    x: 360,
+    x: 420,
     width: 260,
     height: 230,
     tier: 2,
@@ -126,7 +198,7 @@ export const createDefaultBuildings = (): HermesBuilding[] => [
     name: "Bakery",
     theme: "Docs, polish, onboarding",
     skill: "Support",
-    x: 720,
+    x: 860,
     width: 230,
     height: 190,
     tier: 1,
@@ -139,7 +211,7 @@ export const createDefaultBuildings = (): HermesBuilding[] => [
     name: "Blacksmith",
     theme: "Builds, patches, refactors",
     skill: "Code craft",
-    x: 1090,
+    x: 1320,
     width: 280,
     height: 240,
     tier: 2,
@@ -152,7 +224,7 @@ export const createDefaultBuildings = (): HermesBuilding[] => [
     name: "Library",
     theme: "Research and context",
     skill: "Knowledge",
-    x: 1480,
+    x: 1790,
     width: 260,
     height: 230,
     tier: 1,
@@ -165,7 +237,7 @@ export const createDefaultBuildings = (): HermesBuilding[] => [
     name: "Chapel",
     theme: "Safety and approvals",
     skill: "Trust",
-    x: 1860,
+    x: 2260,
     width: 230,
     height: 230,
     tier: 1,
@@ -178,7 +250,7 @@ export const createDefaultBuildings = (): HermesBuilding[] => [
     name: "Windmill",
     theme: "Automations and background work",
     skill: "Cron",
-    x: 2260,
+    x: 2740,
     width: 250,
     height: 280,
     tier: 1,
@@ -191,7 +263,7 @@ export const createDefaultBuildings = (): HermesBuilding[] => [
     name: "Potion Shop",
     theme: "Runtime profiles and experiments",
     skill: "Settings",
-    x: 2630,
+    x: 3220,
     width: 230,
     height: 205,
     tier: 1,
@@ -204,7 +276,7 @@ export const createDefaultBuildings = (): HermesBuilding[] => [
     name: "Market",
     theme: "Skills and plugins",
     skill: "Marketplace",
-    x: 2920,
+    x: 3600,
     width: 250,
     height: 170,
     tier: 1,
@@ -217,7 +289,7 @@ export const createDefaultBuildings = (): HermesBuilding[] => [
     name: "Observatory",
     theme: "Analytics and run logs",
     skill: "Telemetry",
-    x: 3150,
+    x: 3980,
     width: 240,
     height: 250,
     tier: 1,
@@ -230,7 +302,7 @@ export const createDefaultBuildings = (): HermesBuilding[] => [
     name: "Training Yard",
     theme: "Tests, smoke checks, playtests",
     skill: "Verification",
-    x: 3320,
+    x: 4330,
     width: 260,
     height: 150,
     tier: 1,
@@ -283,18 +355,19 @@ export const createDemoHeroes = (): HermesHero[] => [
   },
 ];
 
-export const mapOfficeAgentsToHeroes = (agents: OfficeAgent[]): HermesHero[] => {
+export const mapOfficeAgentsToHeroes = (agents: OfficeAgent[], maxAgents = 8): HermesHero[] => {
   if (agents.length === 0) return createDemoHeroes();
 
-  return agents.slice(0, 8).map((agent, index) => {
-    const className = heroClasses[index % heroClasses.length];
+  return agents.slice(0, maxAgents).map((agent, index) => {
+    const className = classFromAgentRole(agent, index);
+    const active = agent.status === "working";
     return {
       id: agent.id,
       name: agent.name || "Hero",
-      subtitle: agent.subtitle ?? "Hermes agent",
+      subtitle: fantasyRoleFromAgent(agent, className),
       className,
       status:
-        agent.status === "working"
+        active
           ? "working"
           : agent.status === "error"
             ? "error"
@@ -328,6 +401,16 @@ export const createInitialTownState = (params: {
     settings: {
       prosperity: 42,
       npcDensity: 5,
+      connectionProfile: "tailscale",
+      tailscaleHost: "100.81.200.32",
+      homeHost: "192.168.1.10",
+      hermesApiPort: 8642,
+      gatewayPort: 18789,
+      maxAgents: 8,
+      autoEncounters: true,
+      streetViewportVh: 58,
+      streetViewportPx: 500,
+      visualTheme: "royal-guild",
     },
     debug: {
       open: true,
@@ -340,6 +423,7 @@ export const createInitialTownState = (params: {
     },
     mission: {
       active: false,
+      phase: "idle",
       title: "Local debug task",
       objective: "Preview how Hermes task API state will affect the side-scroller.",
       progress: 0,
@@ -348,6 +432,15 @@ export const createInitialTownState = (params: {
         "Debug state is local.",
         "No live Hermes agent request has been sent.",
       ],
+    },
+    encounter: {
+      active: false,
+      id: "none",
+      title: "Quiet street",
+      prompt: "No local encounter is active.",
+      buildingId: "guild-hall",
+      choices: [],
+      log: ["Street encounters are local debug events."],
     },
   };
 };

@@ -233,6 +233,7 @@ const ITEMS = [
 const GYM_WORKOUT_LATCH_MS = 60_000;
 const MAIN_AGENT_ID = "main";
 const DEMO_MAIN_SESSION_KEY = buildAgentMainSessionKey(MAIN_AGENT_ID, "main");
+const HERMES_TOWN_PROTOTYPE_MODE = true;
 const createDemoMainAgentSeed = (): {
   agentId: string;
   name: string;
@@ -1381,7 +1382,8 @@ export function OfficeScreen({
     voiceId: voiceRepliesPreference.voiceId,
     speed: voiceRepliesPreference.speed,
   });
-  const showOnboardingWizard = showOnboarding || forceShowOnboarding;
+  const showOnboardingWizard =
+    forceShowOnboarding || (!HERMES_TOWN_PROTOTYPE_MODE && showOnboarding);
   const handleOpenOnboarding = useCallback(() => {
     resetOnboarding();
     setCompanyCreatedSignal(0);
@@ -4671,6 +4673,7 @@ export function OfficeScreen({
   }, [agentsLoaded, didAttemptGatewayConnect, shouldPromptForConnect, status]);
 
   const showGatewayLoadingOverlay =
+    !HERMES_TOWN_PROTOTYPE_MODE &&
     !agentsLoaded &&
     (!connectPromptReady ||
       (gatewayUrl.trim().length > 0 &&
@@ -4678,6 +4681,7 @@ export function OfficeScreen({
         ((!didAttemptGatewayConnect && showDelayedGatewayLoadingOverlay) ||
           (status === "connecting" && showDelayedGatewayLoadingOverlay))));
   const showGatewayConnectOverlay =
+    !HERMES_TOWN_PROTOTYPE_MODE &&
     connectPromptReady &&
     status === "disconnected" &&
     !agentsLoaded &&
@@ -4701,6 +4705,268 @@ export function OfficeScreen({
   const emptyFleetMessage =
     state.error?.trim() ||
     "Connected to the gateway, but no agents were loaded into the office.";
+  const hermesTownRuntimeSnapshot = useMemo(() => {
+    const classifyHermesTownApiEvent = (text: string) => {
+      const combined = text.toLowerCase();
+      if (
+        combined.includes("error") ||
+        combined.includes("reject") ||
+        combined.includes("closed") ||
+        combined.includes("approval") ||
+        combined.includes("permission") ||
+        combined.includes("blocked")
+      ) {
+        return {
+          buildingId: "chapel" as const,
+          task: "approval" as const,
+          theme: "forest-shrine" as const,
+          titlePrefix: "Chapel Ward",
+          tone: "warning" as const,
+        };
+      }
+      if (combined.includes("test") || combined.includes("verify") || combined.includes("qa") || combined.includes("lint")) {
+        return {
+          buildingId: "training-yard" as const,
+          task: "test_run" as const,
+          theme: "royal-guild" as const,
+          titlePrefix: "Training Yard Trial",
+          tone: "quest" as const,
+        };
+      }
+      if (
+        combined.includes("chat") ||
+        combined.includes("assistant") ||
+        combined.includes("reasoning") ||
+        combined.includes("summary") ||
+        combined.includes("memory") ||
+        combined.includes("context")
+      ) {
+        return {
+          buildingId: "library" as const,
+          task: "research" as const,
+          theme: "arcane-night" as const,
+          titlePrefix: "Library Tome",
+          tone: "memory" as const,
+        };
+      }
+      if (combined.includes("tool") || combined.includes("skill") || combined.includes("market") || combined.includes("plugin")) {
+        return {
+          buildingId: "market" as const,
+          task: "research" as const,
+          theme: "sunlit-market" as const,
+          titlePrefix: "Marketplace Relic",
+          tone: "skill" as const,
+        };
+      }
+      if (combined.includes("cron") || combined.includes("schedule") || combined.includes("automation")) {
+        return {
+          buildingId: "windmill" as const,
+          task: "research" as const,
+          theme: "sunlit-market" as const,
+          titlePrefix: "Windmill Charter",
+          tone: "quest" as const,
+        };
+      }
+      if (
+        combined.includes("code") ||
+        combined.includes("patch") ||
+        combined.includes("build") ||
+        combined.includes("diff") ||
+        combined.includes("file") ||
+        combined.includes("refactor")
+      ) {
+        return {
+          buildingId: "blacksmith" as const,
+          task: "code_patch" as const,
+          theme: "royal-guild" as const,
+          titlePrefix: "Blacksmith Forge Order",
+          tone: "quest" as const,
+        };
+      }
+      if (combined.includes("runtime") || combined.includes("gateway") || combined.includes("presence")) {
+        return {
+          buildingId: "observatory" as const,
+          task: "research" as const,
+          theme: "arcane-night" as const,
+          titlePrefix: "Observatory Omen",
+          tone: "aether" as const,
+        };
+      }
+      return {
+        buildingId: "guild-hall" as const,
+        task: "code_patch" as const,
+        theme: "royal-guild" as const,
+        titlePrefix: "Guild Contract",
+        tone: "quest" as const,
+      };
+    };
+    const fantasyTaskPrefix = (title: string, statusValue: string) => {
+      const classified = classifyHermesTownApiEvent(`${title} ${statusValue}`);
+      return `${classified.titlePrefix}: ${title}`;
+    };
+    const fantasyRunStatus = (agent: AgentState) => {
+      if (agent.awaitingUserInput) return "waiting" as const;
+      if (agent.status === "error") return "blocked" as const;
+      if (agent.status === "running" || Boolean(agent.runId)) return "running" as const;
+      return "recent" as const;
+    };
+    const buildRunDetail = (agent: AgentState) => {
+      const latestRequest = getLatestUserRequestForAgent(agent)?.text;
+      const preview =
+        agent.streamText?.trim() ||
+        agent.latestPreview?.trim() ||
+        agent.lastResult?.trim() ||
+        latestRequest ||
+        "No commission text captured yet.";
+      return preview.slice(0, 150);
+    };
+    const agentNameById = new Map(
+      state.agents.map((agent) => [agent.agentId, agent.name || agent.agentId]),
+    );
+    const taskCards = Object.values(taskBoard.cardsByStatus)
+      .flat()
+      .filter((card) => !card.isArchived)
+      .slice(0, 8)
+      .map((card) => ({
+        id: card.id,
+        title: fantasyTaskPrefix(card.title, card.status),
+        status: card.status,
+        agentName: card.assignedAgentId ? agentNameById.get(card.assignedAgentId) ?? card.assignedAgentId : null,
+      }));
+    const skills = (marketplace.skillsReport?.skills ?? []).slice(0, 8).map((skill) => ({
+      key: skill.skillKey,
+      name: skill.name,
+      ready: deriveSkillReadinessState(skill) === "ready",
+      emoji: skill.emoji ?? null,
+    }));
+    const signals = openClawLogEntries.slice(-10).reverse().map((entry) => {
+      const summarySource =
+        entry.messageText?.trim() ||
+        entry.streamText?.trim() ||
+        entry.toolText?.trim() ||
+        entry.thinkingText?.trim() ||
+        entry.summary;
+      const combined = `${entry.eventName} ${entry.eventKind} ${entry.summary} ${summarySource}`.toLowerCase();
+      const classified = classifyHermesTownApiEvent(combined);
+      return {
+        id: entry.id,
+        title:
+          entry.eventKind === "runtime-chat"
+            ? `${classified.titlePrefix}: Hero Message`
+            : `${classified.titlePrefix}: ${entry.eventName}`,
+        summary: `${classified.titlePrefix} interpreted: ${summarySource.slice(0, 150)}`,
+        timestamp: entry.timestamp,
+        tone: classified.tone,
+        buildingId: classified.buildingId,
+        theme: classified.theme,
+        task: classified.task,
+      };
+    });
+    const activeRunSummaries = state.agents
+      .filter(
+        (agent) =>
+          agent.status === "running" ||
+          Boolean(agent.runId) ||
+          agent.awaitingUserInput ||
+          Boolean(agent.streamText?.trim()),
+      )
+      .slice(0, 4)
+      .map((agent) => {
+        const detail = buildRunDetail(agent);
+        const classified = classifyHermesTownApiEvent(`${agent.name} ${agent.role ?? ""} ${detail}`);
+        return {
+          id: `active:${agent.agentId}:${agent.runId ?? agent.sessionKey}`,
+          title: `${classified.titlePrefix}: ${agent.name || "Hero"} Commission`,
+          heroName: agent.name || agent.agentId,
+          status: fantasyRunStatus(agent),
+          detail,
+          timestamp: agent.lastActivityAt ? formatOpenClawTimestamp(agent.lastActivityAt) : null,
+          buildingId: classified.buildingId,
+          tone: classified.tone,
+        };
+      });
+    const taskRunSummaries = taskCards.slice(0, 4).map((task) => {
+      const classified = classifyHermesTownApiEvent(`${task.title} ${task.status}`);
+      return {
+        id: `task-summary:${task.id}`,
+        title: task.title,
+        heroName: task.agentName ?? null,
+        status:
+          task.status === "done"
+            ? ("complete" as const)
+            : task.status === "blocked"
+              ? ("blocked" as const)
+              : task.status === "review"
+                ? ("waiting" as const)
+                : task.status === "in_progress"
+                  ? ("running" as const)
+                  : ("recent" as const),
+        detail: `Guild board status: ${task.status.replace("_", " ")}`,
+        buildingId: classified.buildingId,
+        tone: classified.tone,
+      };
+    });
+    const eventRunSummaries = openClawLogEntries
+      .slice(-8)
+      .reverse()
+      .map((entry) => {
+        const summarySource =
+          entry.messageText?.trim() ||
+          entry.streamText?.trim() ||
+          entry.toolText?.trim() ||
+          entry.thinkingText?.trim() ||
+          entry.summary;
+        const classified = classifyHermesTownApiEvent(
+          `${entry.eventName} ${entry.eventKind} ${entry.summary} ${summarySource}`,
+        );
+        return {
+          id: `event-summary:${entry.id}`,
+          title:
+            entry.eventKind === "runtime-chat"
+              ? `${classified.titlePrefix}: Hero Message`
+              : `${classified.titlePrefix}: ${entry.eventName}`,
+          heroName: null,
+          status: classified.tone === "warning" ? ("blocked" as const) : ("recent" as const),
+          detail: summarySource.slice(0, 150),
+          timestamp: entry.timestamp,
+          buildingId: classified.buildingId,
+          tone: classified.tone,
+        };
+      });
+    const runSummaries = [
+      ...activeRunSummaries,
+      ...taskRunSummaries,
+      ...eventRunSummaries,
+    ].filter((summary, index, all) => all.findIndex((entry) => entry.id === summary.id) === index).slice(0, 8);
+
+    return {
+      adapterType: activeAdapterType ?? selectedAdapterType,
+      eventCount: openClawLogEntries.length,
+      gatewayStatus: status,
+      gatewayUrl,
+      liveStateText: openClawLiveStateText,
+      remoteStatus: remoteOfficeStatusText,
+      runningCount,
+      runSummaries,
+      signals,
+      skills,
+      tasks: taskCards,
+      unseenInboxCount,
+    };
+  }, [
+    activeAdapterType,
+    gatewayUrl,
+    marketplace.skillsReport,
+    openClawLiveStateText,
+    openClawLogEntries,
+    remoteOfficeStatusText,
+    runningCount,
+    selectedAdapterType,
+    state.agents,
+    status,
+    taskBoard.cardsByStatus,
+    unseenInboxCount,
+  ]);
 
   return (
     <main className="relative h-full w-full overflow-hidden bg-black">
@@ -4741,14 +5007,16 @@ export function OfficeScreen({
           </div>
         </div>
       ) : null}
-      <OfficeFloorNav
-        activeFloorId={activeFloor.id}
-        floorRosterCache={floorRosterCache}
-        onSelectFloor={(floorId) => {
-          void handleSelectFloor(floorId);
-        }}
-        activeAdapterType={(selectedAdapterType as FloorProvider) ?? null}
-      />
+      {!HERMES_TOWN_PROTOTYPE_MODE ? (
+        <OfficeFloorNav
+          activeFloorId={activeFloor.id}
+          floorRosterCache={floorRosterCache}
+          onSelectFloor={(floorId) => {
+            void handleSelectFloor(floorId);
+          }}
+          activeAdapterType={(selectedAdapterType as FloorProvider) ?? null}
+        />
+      ) : null}
       <section className="relative h-full min-h-0 min-w-0 overflow-hidden">
         <RetroOffice3D
           key={activeFloor.id}
@@ -4820,6 +5088,7 @@ export function OfficeScreen({
           onOpenOnboarding={handleOpenOnboarding}
           feedEvents={feedEvents}
           gatewayStatus={status}
+          runtimeSnapshot={hermesTownRuntimeSnapshot}
           runCountByAgentId={runCountByAgentId}
           lastSeenByAgentId={lastSeenByAgentId}
           streamingTextByAgentId={streamingTextByAgentId}
@@ -5040,7 +5309,7 @@ export function OfficeScreen({
         </div>
       ) : null}
 
-      {!debugEnabled ? (
+      {!debugEnabled && !HERMES_TOWN_PROTOTYPE_MODE ? (
         <HQSidebar
           open={sidebarOpen}
           activeTab={activeSidebarTab}
@@ -5165,7 +5434,7 @@ export function OfficeScreen({
         />
       ) : null}
 
-      {showOpenClawConsole ? (
+      {showOpenClawConsole && !HERMES_TOWN_PROTOTYPE_MODE ? (
         <section className="pointer-events-auto fixed bottom-3 left-3 z-30 flex w-[520px] max-w-[calc(100vw-1.5rem)] flex-col overflow-hidden rounded border border-cyan-500/25 bg-black/78 shadow-2xl backdrop-blur">
           <div className="flex items-center justify-between border-b border-cyan-500/15 px-3 py-2 font-mono text-[11px] uppercase tracking-[0.18em] text-cyan-200/80">
             <span>Agent Event Console</span>
@@ -5379,7 +5648,7 @@ export function OfficeScreen({
 
       <div
         className={`fixed bottom-3 z-30 flex flex-col items-end gap-2 ${sidebarOpen ? "right-84" : "right-3"} ${
-          debugEnabled ? "hidden" : ""
+          debugEnabled || HERMES_TOWN_PROTOTYPE_MODE ? "hidden" : ""
         }`}
       >
         {chatOpen && (

@@ -20,6 +20,10 @@ export const createHermesTownBridge = (initialState: HermesTownState): HermesTow
           ...state.mission,
           ...(next.mission ?? {}),
         },
+        encounter: {
+          ...state.encounter,
+          ...(next.encounter ?? {}),
+        },
         settings: {
           ...state.settings,
           ...(next.settings ?? {}),
